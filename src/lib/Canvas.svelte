@@ -160,7 +160,7 @@
             camera.position.add(pivot);
         } else {
             cubes.forEach((cube) => {
-                if (Math.abs(cube.position.z - depth) > 0.02) {
+                if (Math.abs(cube.position.z - depth) > 0.05) {
                     cube.visible = false;
                 }
                 else {
