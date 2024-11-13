@@ -30,7 +30,9 @@
     let savedRotation = new THREE.Vector3(0, 0, 0);
 
     let binaryMode = false;
+    let showAllMode = false;
     let visualizationState = 0;
+    let swap = false;
     let depth = 0;
 
     $effect(() => {
@@ -44,12 +46,13 @@
                     point[1],
                     point[2],
                     point[3],
+                    point[4],
                 ),
             );
         });
     });
 
-    function makeCubeInstance(scene, geometry, x, y, z, color) {
+    function makeCubeInstance(scene, geometry, x, y, z, w, color) {
         const material = new THREE.MeshBasicMaterial({
             color: colorDict[color],
         });
@@ -61,6 +64,7 @@
         cube.position.x = x;
         cube.position.y = y;
         cube.position.z = z;
+        cube.position.w = w;
 
         return cube;
     }
@@ -83,6 +87,9 @@
 
     function render(time) {
         time *= 0.001;
+        cubes.forEach((cube) => {
+            cube.visible = true;
+        });
 
         let rotationAxis = new THREE.Vector3(0, 0, 0);
         let angle = 0;
@@ -105,8 +112,7 @@
             // W - rotate clockwise along x-axis
             if (binaryMode) {
                 depth = Math.min(1, depth + 0.01);
-            }
-            else {
+            } else {
                 rotationAxis = right;
                 angle = 0.03;
             }
@@ -114,8 +120,7 @@
             // S - rotate anti-clockwise along x-axis
             if (binaryMode) {
                 depth = Math.max(0, depth - 0.01);
-            }
-            else {
+            } else {
                 rotationAxis = right;
                 angle = -0.03;
             }
@@ -131,6 +136,21 @@
             if (!visualizationState) {
                 visualizationState = 1;
             }
+        } else if (inputMap["o"]) {
+            if (!binaryMode) {
+                depth = Math.min(1, depth + 0.01);
+            }
+        } else if (inputMap["l"]) {
+            if (!binaryMode) {
+                depth = Math.max(0, depth - 0.01);
+            }
+        } else if (inputMap["p"]) {
+            swap = true;
+        }
+
+        if (!inputMap["p"] && swap) {
+            swap = false;
+            showAllMode = !showAllMode;
         }
 
         if (!inputMap["b"] && visualizationState) {
@@ -142,9 +162,6 @@
             } else {
                 camera.position.copy(savedPosition);
                 camera.rotation.copy(savedRotation);
-                cubes.forEach((cube) => {
-                    cube.visible = true;
-                });
             }
             binaryMode = !binaryMode;
             visualizationState = 0;
@@ -158,15 +175,25 @@
             camera.position.applyQuaternion(quaternion);
             camera.applyQuaternion(quaternion);
             camera.position.add(pivot);
+            if (!showAllMode) {
+                cubes.forEach((cube) => {
+                    if (Math.abs(cube.position.w - depth) > 0.0025) {
+                        cube.visible = false;
+                    } else {
+                        cube.visible = true;
+                    }
+                });
+            }
         } else {
-            cubes.forEach((cube) => {
-                if (Math.abs(cube.position.z - depth) > 0.05) {
-                    cube.visible = false;
-                }
-                else {
-                    cube.visible = true;
-                }
-            });
+            if (!showAllMode) {
+                cubes.forEach((cube) => {
+                    if (Math.abs(cube.position.z - depth) > 0.05) {
+                        cube.visible = false;
+                    } else {
+                        cube.visible = true;
+                    }
+                });
+            }
         }
 
         cubes.forEach((cube) => {

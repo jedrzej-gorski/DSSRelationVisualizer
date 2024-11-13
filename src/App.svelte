@@ -16,7 +16,8 @@
 					parseFloat(values[0]),
 					parseFloat(values[1]),
 					parseFloat(values[2]),
-					parseInt(values[3], 10),
+					parseFloat(values[3]),
+					parseInt(values[4], 10),
 				];
 			});
 			
