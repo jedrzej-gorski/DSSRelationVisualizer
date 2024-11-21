@@ -1,21 +1,27 @@
 <script>
     import { onMount } from "svelte";
     import * as THREE from "three";
+    import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
     let canvas;
     const colorDict = {
-        0: 0xff0000,
-        1: 0x00ffff,
-        2: 0xeeeeee,
-        3: 0xee00ee,
+        0: new Uint8Array([255, 0, 0]),
+        1: new Uint8Array([0, 255, 255]),
+        2: new Uint8Array([238, 238, 238]),
+        3: new Uint8Array([238, 0, 238]),
     };
 
     const boxWidth = 0.005;
     const boxHeight = 0.005;
     const boxDepth = 0.005;
     const circleRadius = 0.005;
+    const delta = 0.0025
     //const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
-    const geometry = new THREE.CircleGeometry(circleRadius, 6);
+    const geometry = new THREE.OctahedronGeometry(circleRadius, 0);
+    let geometries = [];
+    let mergedGeometry = new THREE.BufferGeometry();
+    let material = new THREE.MeshBasicMaterial();
+    let mesh = new THREE.Mesh();
 
     let { pointData = [] } = $props();
     let isReady = $state(false);
@@ -33,24 +39,50 @@
     let showAllMode = false;
     let visualizationState = 0;
     let swap = false;
-    let depth = 0;
+    let depthDimension = $state(-1);
+    let depth = $state(0);
 
     $effect(() => {
-        cubes = [];
-        pointData.forEach((point) => {
-            cubes.push(
-                makeCubeInstance(
-                    scene,
-                    geometry,
-                    point[0],
-                    point[1],
-                    point[2],
-                    point[3],
-                    point[4],
-                ),
-            );
-        });
+        let oldMesh = mesh;
+        createGeometries();
+        if (geometries.length > 0) {
+            mergedGeometry = BufferGeometryUtils.mergeGeometries(geometries, false);
+            material = new THREE.MeshBasicMaterial({
+                vertexColors: true,
+            });
+            
+            mesh = new THREE.Mesh(mergedGeometry, material);
+        }
+        if (isReady) {
+            scene.remove(oldMesh);
+            scene.add(mesh);
+        }
     });
+
+    $inspect(pointData);
+
+    function createGeometries() {
+        geometries = [];
+        pointData.forEach((point) => {
+            if (depthDimension == -1 || (Math.abs(point[depthDimension] - depth) < delta)) {
+                const newGeometry = new THREE.OctahedronGeometry(circleRadius, 0);
+
+                const transformMatrix = new THREE.Matrix4();
+                transformMatrix.makeTranslation(point[0], point[1], point[2]);
+                newGeometry.applyMatrix4(transformMatrix);
+
+                const colors = new Uint8Array(3 * newGeometry.getAttribute('position').count);
+                colors.forEach((v, index) => {
+                    colors[index] = colorDict[point[4]][index % 3];
+                });
+                
+                const colorAttrib = new THREE.BufferAttribute(colors, 3, true);
+                newGeometry.setAttribute('color', colorAttrib);
+
+                geometries.push(newGeometry);
+            }
+        })
+    }
 
     function makeCubeInstance(scene, geometry, x, y, z, w, color) {
         const material = new THREE.MeshBasicMaterial({
@@ -87,9 +119,6 @@
 
     function render(time) {
         time *= 0.001;
-        cubes.forEach((cube) => {
-            cube.visible = true;
-        });
 
         let rotationAxis = new THREE.Vector3(0, 0, 0);
         let angle = 0;
@@ -151,6 +180,7 @@
         if (!inputMap["p"] && swap) {
             swap = false;
             showAllMode = !showAllMode;
+            depthDimension = -1;
         }
 
         if (!inputMap["b"] && visualizationState) {
@@ -159,9 +189,11 @@
                 savedRotation.copy(camera.rotation);
                 camera.position.copy(origin);
                 camera.lookAt(0.5, 0.5, 0.5);
+                depthDimension = 2;
             } else {
                 camera.position.copy(savedPosition);
                 camera.rotation.copy(savedRotation);
+                depthDimension = 3;
             }
             binaryMode = !binaryMode;
             visualizationState = 0;
@@ -175,32 +207,8 @@
             camera.position.applyQuaternion(quaternion);
             camera.applyQuaternion(quaternion);
             camera.position.add(pivot);
-            if (!showAllMode) {
-                cubes.forEach((cube) => {
-                    if (Math.abs(cube.position.w - depth) > 0.0025) {
-                        cube.visible = false;
-                    } else {
-                        cube.visible = true;
-                    }
-                });
-            }
-        } else {
-            if (!showAllMode) {
-                cubes.forEach((cube) => {
-                    if (Math.abs(cube.position.z - depth) > 0.05) {
-                        cube.visible = false;
-                    } else {
-                        cube.visible = true;
-                    }
-                });
-            }
         }
 
-        cubes.forEach((cube) => {
-            cube.lookAt(camera.position);
-        });
-
-        console.log(camera.rotation);
 
         renderer.render(scene, camera);
         requestAnimationFrame(render);
