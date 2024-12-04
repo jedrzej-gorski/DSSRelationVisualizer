@@ -21,7 +21,6 @@
 				];
 			});
 			
-			console.log("you're done")
 			return result;
 		} catch (error) {
 			console.error("Error loading CSV:", error);

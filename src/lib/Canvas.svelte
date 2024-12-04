@@ -2,6 +2,7 @@
     import { onMount } from "svelte";
     import * as THREE from "three";
     import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+    import ToolPalette from "./ToolPalette.svelte";
 
     let canvas;
     const colorDict = {
@@ -24,6 +25,15 @@
     let mesh = new THREE.Mesh();
 
     let { pointData = [] } = $props();
+    let attributes = $derived.by(() => {
+        let newAttributes = [];
+        if (pointData.length > 0) {
+            for (let i = 0; i < pointData[0].length - 1; i++) {
+                newAttributes.push(`Val${i}`);
+            }
+        }
+        return newAttributes;
+    })
     let isReady = $state(false);
     let cubes;
     let scene;
@@ -58,8 +68,6 @@
             scene.add(mesh);
         }
     });
-
-    $inspect(pointData);
 
     function createGeometries() {
         geometries = [];
@@ -247,14 +255,21 @@
     };
 </script>
 
-<div>
+<div id="container">
     <canvas bind:this={canvas} id="c"> </canvas>
+    <ToolPalette {attributes}></ToolPalette>
 </div>
 
 <svelte:window {onkeydown} {onkeyup} />
 
 <style>
+    #container {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+    }
     #c {
+        position: relative;
         width: 100%;
         height: 100%;
         display: block;
