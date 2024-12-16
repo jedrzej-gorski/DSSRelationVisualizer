@@ -10,8 +10,33 @@
 
 			const rows = data.split("\n");
 
-			const result = rows.map((row) => {
+			let dataObject = {};
+			dataObject.metadata = [];
+			if (rows.length > 0) {
+				dataObject.metadata = rows[0]
+					.split(",")
+					.map((value) => [null, null]);
+			}
+
+			dataObject.pointData = rows.map((row) => {
 				const values = row.split(",").map((value) => value.trim());
+				let point = [];
+				values.forEach((value, index) => {
+					if (index != 4) {
+						value = parseFloat(value);
+						if (
+							dataObject.metadata[index][0] == null ||
+							value < dataObject.metadata[index][0]
+						) {
+							dataObject.metadata[index][0] = value;
+						} else if (
+							dataObject.metadata[index][1] == null ||
+							value > dataObject.metadata[index][1]
+						) {
+							dataObject.metadata[index][1] = value;
+						}
+					}
+				});
 				return [
 					parseFloat(values[0]),
 					parseFloat(values[1]),
@@ -20,23 +45,24 @@
 					parseInt(values[4], 10),
 				];
 			});
-			
-			return result;
+
+			return dataObject;
 		} catch (error) {
 			console.error("Error loading CSV:", error);
 			return [];
 		}
 	}
 
-	let points = []
-
+	let dataObject = $state(null);
+	let points = $derived(dataObject?.pointData);
+	let metadata = $derived(dataObject?.metadata);
 	onMount(async () => {
-		points = await loadCSV(csvUrl);
-	})
+		dataObject = await loadCSV(csvUrl);
+	});
 </script>
 
 <main>
-	<Canvas pointData={points}></Canvas>
+	<Canvas pointData={points} {metadata}></Canvas>
 </main>
 
 <style>

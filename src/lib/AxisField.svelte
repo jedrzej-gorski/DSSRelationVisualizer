@@ -11,7 +11,7 @@
         items = e.detail.items;
         if (items.length == 1) {
             dropFromOthersDisabled = true;
-            field = e.detail.items[0].value;
+            field = e.detail.items[0].id;
         }
         else {
             dropFromOthersDisabled = false;

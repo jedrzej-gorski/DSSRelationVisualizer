@@ -1,7 +1,7 @@
 <script>
     import { onMount } from "svelte";
     import * as THREE from "three";
-    import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+    import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
     import ToolPalette from "./ToolPalette.svelte";
 
     let canvas;
@@ -16,7 +16,7 @@
     const boxHeight = 0.005;
     const boxDepth = 0.005;
     const circleRadius = 0.005;
-    const delta = 0.0025
+    const delta = 0.0025;
     //const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
     const geometry = new THREE.OctahedronGeometry(circleRadius, 0);
     let geometries = [];
@@ -24,7 +24,7 @@
     let material = new THREE.MeshBasicMaterial();
     let mesh = new THREE.Mesh();
 
-    let { pointData = [] } = $props();
+    let { pointData = [], metadata = [] } = $props();
     let attributes = $derived.by(() => {
         let newAttributes = [];
         if (pointData.length > 0) {
@@ -33,9 +33,9 @@
             }
         }
         return newAttributes;
-    })
+    });
     let isReady = $state(false);
-    let cubes;
+    let points;
     let scene;
     let renderer;
     let camera;
@@ -45,51 +45,78 @@
     let savedPosition = origin.clone();
     let savedRotation = new THREE.Vector3(0, 0, 0);
 
+    let fieldX = $state(null);
+    let fieldY = $state(null);
+    let fieldZ = $state(null);
+    let constantDimensions = $state(null);
+    $inspect(constantDimensions);
+
     let binaryMode = false;
     let showAllMode = false;
     let visualizationState = 0;
     let swap = false;
-    let depthDimension = $state(-1);
     let depth = $state(0);
 
     $effect(() => {
-        let oldMesh = mesh;
-        createGeometries();
-        if (geometries.length > 0) {
-            mergedGeometry = BufferGeometryUtils.mergeGeometries(geometries, false);
-            material = new THREE.MeshBasicMaterial({
-                vertexColors: true,
-            });
-            
-            mesh = new THREE.Mesh(mergedGeometry, material);
-        }
-        if (isReady) {
-            scene.remove(oldMesh);
-            scene.add(mesh);
+        /*if (metadata.length > 0) {
+            // Set default values to minimum values of each column
+            constantDimensions = metadata.map((v) => {return v[0]});
+        }*/
+        
+        if (fieldX != null && fieldY != null && fieldZ != null && constantDimensions != null) {
+            let oldMesh = mesh;
+            createGeometries();
+            if (geometries.length > 0) {
+                mergedGeometry = BufferGeometryUtils.mergeGeometries(
+                    geometries,
+                    false,
+                );
+                material = new THREE.MeshBasicMaterial({
+                    vertexColors: true,
+                });
+
+                mesh = new THREE.Mesh(mergedGeometry, material);
+            }
+            if (isReady) {
+                scene.remove(oldMesh);
+                scene.add(mesh);
+            }
         }
     });
 
     function createGeometries() {
         geometries = [];
         pointData.forEach((point) => {
-            if (depthDimension == -1 || (Math.abs(point[depthDimension] - depth) < delta)) {
-                const newGeometry = new THREE.OctahedronGeometry(circleRadius, 0);
+            let isValid = true;
+            for (const key in constantDimensions) {
+                if (Math.abs(point[parseInt(key)] - constantDimensions[key][1]) > delta) {
+                    isValid = false;
+                    break;
+                }
+            }
+            if (isValid) {
+                const newGeometry = new THREE.OctahedronGeometry(
+                    circleRadius,
+                    0,
+                );
 
                 const transformMatrix = new THREE.Matrix4();
-                transformMatrix.makeTranslation(point[0], point[1], point[2]);
+                transformMatrix.makeTranslation(point[fieldX], point[fieldY], point[fieldZ]);
                 newGeometry.applyMatrix4(transformMatrix);
 
-                const colors = new Uint8Array(3 * newGeometry.getAttribute('position').count);
+                const colors = new Uint8Array(
+                    3 * newGeometry.getAttribute("position").count,
+                );
                 colors.forEach((v, index) => {
                     colors[index] = colorDict[point[4]][index % 3];
                 });
-                
+
                 const colorAttrib = new THREE.BufferAttribute(colors, 3, true);
-                newGeometry.setAttribute('color', colorAttrib);
+                newGeometry.setAttribute("color", colorAttrib);
 
                 geometries.push(newGeometry);
             }
-        })
+        });
     }
 
     function makeCubeInstance(scene, geometry, x, y, z, w, color) {
@@ -217,7 +244,6 @@
             camera.position.add(pivot);
         }
 
-
         renderer.render(scene, camera);
         requestAnimationFrame(render);
     }
@@ -257,7 +283,7 @@
 
 <div id="container">
     <canvas bind:this={canvas} id="c"> </canvas>
-    <ToolPalette {attributes}></ToolPalette>
+    <ToolPalette {attributes} {metadata}bind:fieldX bind:fieldY bind:fieldZ bind:constantDimensions></ToolPalette>
 </div>
 
 <svelte:window {onkeydown} {onkeyup} />
