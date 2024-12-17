@@ -16,7 +16,7 @@
     const boxHeight = 0.005;
     const boxDepth = 0.005;
     const circleRadius = 0.005;
-    const delta = 0.0025;
+    const delta = 0.01;
     //const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
     const geometry = new THREE.OctahedronGeometry(circleRadius, 0);
     let geometries = [];
@@ -51,7 +51,22 @@
     $inspect(fieldX);
     $inspect(fieldY);
     $inspect(fieldZ);
+    let definedFieldCount = $derived.by(() => {
+        let count = 0;
+        if (fieldX != null) {
+            count++;
+        }
+        if (fieldY != null) {
+            count++;
+        }
+        if (fieldZ != null) {
+            count++;
+        }
+        return count;
+    })
     let savedDimensions = $state(null);
+    // TODO: Change name to match bool convention
+    let attributeActivity = $state(null);
     $inspect(savedDimensions);
 
     let binaryMode = false;
@@ -66,6 +81,7 @@
         if (metadata.length - 1 > 0 && !hasInitializedDimensions) {
             // Set default values to minimum values of each column
             savedDimensions = metadata.map((v) => {return v[0]});
+            attributeActivity = metadata.map((v) => {return true});
             hasInitializedDimensions = true;
         }
         
@@ -73,7 +89,7 @@
             let oldMesh = mesh;
             scene.remove(oldMesh);
         }
-        if (fieldX != null && fieldY != null && fieldZ != null) {
+        if (definedFieldCount > 1) {
             createGeometries();
             if (geometries.length > 0) {
                 mergedGeometry = BufferGeometryUtils.mergeGeometries(
@@ -97,7 +113,7 @@
         pointData.forEach((point) => {
             let isValid = true;
             savedDimensions.forEach((dimension, index) => {
-                if (fieldX != index && fieldY != index && fieldZ != index) {
+                if (fieldX != index && fieldY != index && fieldZ != index && attributeActivity[index]) {
                     if (Math.abs(point[index] - dimension) > delta) {
                         isValid = false;
                     }
@@ -110,7 +126,20 @@
                 );
 
                 const transformMatrix = new THREE.Matrix4();
-                transformMatrix.makeTranslation(point[fieldX], point[fieldY], point[fieldZ]);
+                if (definedFieldCount == 3) {
+                    transformMatrix.makeTranslation(point[fieldX], point[fieldY], point[fieldZ]);
+                }
+                else {
+                    if (fieldX == null) {
+                        transformMatrix.makeTranslation(0, point[fieldY], point[fieldZ]);
+                    }
+                    else if (fieldY == null) {
+                        transformMatrix.makeTranslation(point[fieldX], 0, point[fieldZ]);
+                    }
+                    else if (fieldZ == null) {
+                        transformMatrix.makeTranslation(point[fieldX], point[fieldY], 0);
+                    }
+                }
                 newGeometry.applyMatrix4(transformMatrix);
 
                 const colors = new Uint8Array(
@@ -292,7 +321,7 @@
 
 <div id="container">
     <canvas bind:this={canvas} id="c"> </canvas>
-    <ToolPalette {attributes} {metadata} bind:fieldX bind:fieldY bind:fieldZ bind:savedDimensions></ToolPalette>
+    <ToolPalette {attributes} {metadata} {definedFieldCount} bind:fieldX bind:fieldY bind:fieldZ bind:savedDimensions bind:attributeActivity></ToolPalette>
 </div>
 
 <svelte:window {onkeydown} {onkeyup} />
