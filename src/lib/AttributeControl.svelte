@@ -4,6 +4,9 @@
     let {item, columnMetadata=[], definedFieldCount = 0, value = $bindable(), fieldX = $bindable(), fieldY = $bindable(), fieldZ = $bindable(), isActive = $bindable()} = $props()
 
     function setXAxis() {
+        if (!isActive) {
+            return;
+        }
         if (fieldX == item.id) {
             fieldX = null;
         } else {
@@ -11,6 +14,9 @@
         }
     }
     function setYAxis() {
+        if (!isActive) {
+            return;
+        }
         if (fieldY == item.id) {
             fieldY = null;
         } else {
@@ -18,6 +24,9 @@
         }
     }
     function setZAxis() {
+        if (!isActive) {
+            return;
+        }
         if (fieldZ == item.id) {
             fieldZ = null;
         } else {

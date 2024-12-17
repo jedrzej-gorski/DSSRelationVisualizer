@@ -6,51 +6,27 @@
 
     let canvas;
     const colorDict = {
-        0: new Uint8Array([255, 0, 0]),
-        1: new Uint8Array([0, 255, 255]),
-        2: new Uint8Array([238, 238, 238]),
-        3: new Uint8Array([238, 0, 238]),
+        0: new THREE.Color("rgb(255, 0, 0)"),
+        1: new THREE.Color("rgb(0, 255, 255)"),
+        2: new THREE.Color("rgb(238, 238, 238)"),
+        3: new THREE.Color("rgb(238, 0, 238)"),
     };
 
     const boxWidth = 0.005;
     const boxHeight = 0.005;
     const boxDepth = 0.005;
     const circleRadius = 0.005;
-    const delta = 0.0025;
+    const delta = 0.01;
     //const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
     const geometry = new THREE.OctahedronGeometry(circleRadius, 0);
-    let geometries = [];
     let mergedGeometry = new THREE.BufferGeometry();
     let material = new THREE.MeshBasicMaterial();
-    let mesh = new THREE.Mesh();
 
     let { pointData = [], metadata = [] } = $props();
-    let attributes = $derived.by(() => {
-        let newAttributes = [];
-        if (pointData.length > 0) {
-            for (let i = 0; i < pointData[0].length - 1; i++) {
-                newAttributes.push(`Val${i}`);
-            }
-        }
-        return newAttributes;
-    });
-    let isReady = $state(false);
-    let points;
-    let scene;
-    let renderer;
-    let camera;
-    let angle = 0;
-    const pivot = new THREE.Vector3(0.5, 0.5, 0.5);
-    const origin = new THREE.Vector3(0.5, 0.5, 2.5);
-    let savedPosition = origin.clone();
-    let savedRotation = new THREE.Vector3(0, 0, 0);
 
     let fieldX = $state(null);
     let fieldY = $state(null);
     let fieldZ = $state(null);
-    $inspect(fieldX);
-    $inspect(fieldY);
-    $inspect(fieldZ);
     let definedFieldCount = $derived.by(() => {
         let count = 0;
         if (fieldX != null) {
@@ -63,12 +39,54 @@
             count++;
         }
         return count;
-    })
+    });
+    let validPoints = $derived.by(() => {
+        if (definedFieldCount > 1 && pointData.length > 0) {
+            return pointData.filter((point) => {
+                let valid = true;
+                savedDimensions.forEach((dimension, index) => {
+                    if (
+                        fieldX != index &&
+                        fieldY != index &&
+                        fieldZ != index &&
+                        attributeActivity[index]
+                    ) {
+                        if (Math.abs(point[index] - dimension) > delta) {
+                            valid = false;
+                            return;
+                        }
+                    }
+                });
+                return valid;
+            });
+        }
+        return [];
+    });
+    $inspect(validPoints);
+
+    let attributes = $derived.by(() => {
+        let newAttributes = [];
+        if (pointData.length > 0) {
+            for (let i = 0; i < pointData[0].length - 1; i++) {
+                newAttributes.push(`Val${i}`);
+            }
+        }
+        return newAttributes;
+    });
+    let isReady = $state(false);
+    let scene;
+    let renderer;
+    let camera;
+    let angle = 0;
+    const pivot = new THREE.Vector3(0.5, 0.5, 0.5);
+    const origin = new THREE.Vector3(0.5, 0.5, 2.5);
+    let savedPosition = origin.clone();
+    let savedRotation = new THREE.Vector3(0, 0, 0);
+
     let savedDimensions = $state(null);
     // TODO: Change name to match bool convention
     let attributeActivity = $state(null);
-    $inspect(savedDimensions);
-
+    let mesh = null;
     let binaryMode = false;
     let showAllMode = false;
     let visualizationState = 0;
@@ -80,80 +98,58 @@
     $effect(() => {
         if (metadata.length - 1 > 0 && !hasInitializedDimensions) {
             // Set default values to minimum values of each column
-            savedDimensions = metadata.map((v) => {return v[0]});
-            attributeActivity = metadata.map((v) => {return true});
+            savedDimensions = metadata.map((v) => {
+                return v[0];
+            });
+            attributeActivity = metadata.map((v) => {
+                return true;
+            });
             hasInitializedDimensions = true;
         }
-        
+
         if (mesh != null && scene != null) {
             let oldMesh = mesh;
             scene.remove(oldMesh);
         }
-        if (definedFieldCount > 1) {
-            createGeometries();
-            if (geometries.length > 0) {
-                mergedGeometry = BufferGeometryUtils.mergeGeometries(
-                    geometries,
-                    false,
-                );
-                material = new THREE.MeshBasicMaterial({
-                    vertexColors: true,
-                });
-
-                mesh = new THREE.Mesh(mergedGeometry, material);
-            }
-            if (isReady) {
-                scene.add(mesh);
-            }
+        mesh = new THREE.InstancedMesh(geometry, material, validPoints.length);
+        setInstances();
+        if (isReady) {
+            scene.add(mesh);
         }
     });
 
-    function createGeometries() {
-        geometries = [];
-        pointData.forEach((point) => {
-            let isValid = true;
-            savedDimensions.forEach((dimension, index) => {
-                if (fieldX != index && fieldY != index && fieldZ != index && attributeActivity[index]) {
-                    if (Math.abs(point[index] - dimension) > delta) {
-                        isValid = false;
-                    }
-                }
-            })
-            if (isValid) {
-                const newGeometry = new THREE.OctahedronGeometry(
-                    circleRadius,
-                    0,
+    function setInstances() {
+        validPoints.forEach((point, index) => {
+            const transformMatrix = new THREE.Matrix4();
+            if (definedFieldCount == 3) {
+                transformMatrix.makeTranslation(
+                    point[fieldX],
+                    point[fieldY],
+                    point[fieldZ],
                 );
-
-                const transformMatrix = new THREE.Matrix4();
-                if (definedFieldCount == 3) {
-                    transformMatrix.makeTranslation(point[fieldX], point[fieldY], point[fieldZ]);
+            } else {
+                if (fieldX == null) {
+                    transformMatrix.makeTranslation(
+                        0,
+                        point[fieldY],
+                        point[fieldZ],
+                    );
+                } else if (fieldY == null) {
+                    transformMatrix.makeTranslation(
+                        point[fieldX],
+                        0,
+                        point[fieldZ],
+                    );
+                } else if (fieldZ == null) {
+                    transformMatrix.makeTranslation(
+                        point[fieldX],
+                        point[fieldY],
+                        0,
+                    );
                 }
-                else {
-                    if (fieldX == null) {
-                        transformMatrix.makeTranslation(0, point[fieldY], point[fieldZ]);
-                    }
-                    else if (fieldY == null) {
-                        transformMatrix.makeTranslation(point[fieldX], 0, point[fieldZ]);
-                    }
-                    else if (fieldZ == null) {
-                        transformMatrix.makeTranslation(point[fieldX], point[fieldY], 0);
-                    }
-                }
-                newGeometry.applyMatrix4(transformMatrix);
-
-                const colors = new Uint8Array(
-                    3 * newGeometry.getAttribute("position").count,
-                );
-                colors.forEach((v, index) => {
-                    colors[index] = colorDict[point[4]][index % 3];
-                });
-
-                const colorAttrib = new THREE.BufferAttribute(colors, 3, true);
-                newGeometry.setAttribute("color", colorAttrib);
-
-                geometries.push(newGeometry);
             }
+            mesh.setMatrixAt(index, transformMatrix);
+            mesh.setColorAt(index, colorDict[point[4]]);
         });
     }
 
@@ -321,7 +317,16 @@
 
 <div id="container">
     <canvas bind:this={canvas} id="c"> </canvas>
-    <ToolPalette {attributes} {metadata} {definedFieldCount} bind:fieldX bind:fieldY bind:fieldZ bind:savedDimensions bind:attributeActivity></ToolPalette>
+    <ToolPalette
+        {attributes}
+        {metadata}
+        {definedFieldCount}
+        bind:fieldX
+        bind:fieldY
+        bind:fieldZ
+        bind:savedDimensions
+        bind:attributeActivity
+    ></ToolPalette>
 </div>
 
 <svelte:window {onkeydown} {onkeyup} />
