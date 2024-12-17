@@ -16,7 +16,7 @@
     const boxHeight = 0.005;
     const boxDepth = 0.005;
     const circleRadius = 0.005;
-    const delta = 0.01;
+    const delta = 0.0025;
     //const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
     const geometry = new THREE.OctahedronGeometry(circleRadius, 0);
     let geometries = [];

@@ -36,6 +36,11 @@
             fieldZ = null;
         }
     }
+    function oninput(event) {
+        if (value == null) {
+            value = 0;
+        }
+    }
 </script>
 
 <div class="flex flex-row w-full min-h-[50px] border-gray-700 border-2 rounded-lg">
@@ -55,7 +60,7 @@
         {#if value != null && fieldX != item.id && fieldY != item.id && fieldZ != item.id && definedFieldCount > 1 && isActive}
         <div class="flex flex-row w-full h-[24px]">
             <RangeSlider bind:value step={0.0025} min={columnMetadata[0]} max={columnMetadata[1]} springValues={{damping: 1, stiffness: 1}} first={'label'} last={'label'}></RangeSlider>
-            <input maxlength="6" type="number" min={columnMetadata[0]} step={0.0025} max={columnMetadata[1]} class="attribute text-white m-4 w-[10%] min-w-[65px] h-full relative top-[-15px] bg-gray-800" bind:value={value}>
+            <input {oninput} maxlength="6" type="number" min={columnMetadata[0]} step={0.0025} max={columnMetadata[1]} class="attribute text-white m-4 w-[10%] min-w-[65px] h-full relative top-[-15px] bg-gray-800" bind:value={value}>
         </div>
     {/if}
     </div>
