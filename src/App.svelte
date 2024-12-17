@@ -15,6 +15,7 @@
 			if (rows.length > 0) {
 				dataObject.metadata = rows[0]
 					.split(",")
+					.slice(0, -1)
 					.map((value) => [null, null]);
 			}
 

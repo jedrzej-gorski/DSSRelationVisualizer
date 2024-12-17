@@ -11,3 +11,17 @@ html, body {
   margin: 0;
   height: 100%;
 }
+
+.rangeSlider {
+  flex: 1;
+  @apply text-[0.70rem];
+}
+
+.rangeSlider.hoverable:not(.disabled) .rangeHandle:hover:before {
+  box-shadow: 0 0 0 4px #838de7 !important;
+}
+
+.rangeSlider.hoverable:not(.disabled) .rangeHandle.press:before,
+.rangeSlider.hoverable:not(.disabled) .rangeHandle.press:hover:before {
+  box-shadow: 0 0 0 6px #838de7 !important;
+}

@@ -48,8 +48,11 @@
     let fieldX = $state(null);
     let fieldY = $state(null);
     let fieldZ = $state(null);
-    let constantDimensions = $state(null);
-    $inspect(constantDimensions);
+    $inspect(fieldX);
+    $inspect(fieldY);
+    $inspect(fieldZ);
+    let savedDimensions = $state(null);
+    $inspect(savedDimensions);
 
     let binaryMode = false;
     let showAllMode = false;
@@ -57,14 +60,20 @@
     let swap = false;
     let depth = $state(0);
 
+    let hasInitializedDimensions = false;
+
     $effect(() => {
-        /*if (metadata.length > 0) {
+        if (metadata.length - 1 > 0 && !hasInitializedDimensions) {
             // Set default values to minimum values of each column
-            constantDimensions = metadata.map((v) => {return v[0]});
-        }*/
+            savedDimensions = metadata.map((v) => {return v[0]});
+            hasInitializedDimensions = true;
+        }
         
-        if (fieldX != null && fieldY != null && fieldZ != null && constantDimensions != null) {
+        if (mesh != null && scene != null) {
             let oldMesh = mesh;
+            scene.remove(oldMesh);
+        }
+        if (fieldX != null && fieldY != null && fieldZ != null) {
             createGeometries();
             if (geometries.length > 0) {
                 mergedGeometry = BufferGeometryUtils.mergeGeometries(
@@ -78,7 +87,6 @@
                 mesh = new THREE.Mesh(mergedGeometry, material);
             }
             if (isReady) {
-                scene.remove(oldMesh);
                 scene.add(mesh);
             }
         }
@@ -88,12 +96,13 @@
         geometries = [];
         pointData.forEach((point) => {
             let isValid = true;
-            for (const key in constantDimensions) {
-                if (Math.abs(point[parseInt(key)] - constantDimensions[key][1]) > delta) {
-                    isValid = false;
-                    break;
+            savedDimensions.forEach((dimension, index) => {
+                if (fieldX != index && fieldY != index && fieldZ != index) {
+                    if (Math.abs(point[index] - dimension) > delta) {
+                        isValid = false;
+                    }
                 }
-            }
+            })
             if (isValid) {
                 const newGeometry = new THREE.OctahedronGeometry(
                     circleRadius,
@@ -283,7 +292,7 @@
 
 <div id="container">
     <canvas bind:this={canvas} id="c"> </canvas>
-    <ToolPalette {attributes} {metadata}bind:fieldX bind:fieldY bind:fieldZ bind:constantDimensions></ToolPalette>
+    <ToolPalette {attributes} {metadata} bind:fieldX bind:fieldY bind:fieldZ bind:savedDimensions></ToolPalette>
 </div>
 
 <svelte:window {onkeydown} {onkeyup} />
