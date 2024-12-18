@@ -96,6 +96,14 @@
     let hasInitializedDimensions = false;
 
     $effect(() => {
+        if (isReady) {
+            scene.remove(mesh);
+            mesh = new THREE.InstancedMesh(geometry, material, validPoints.length);
+            scene.add(mesh);
+        }
+    });
+
+    $effect(() => {
         if (metadata.length - 1 > 0 && !hasInitializedDimensions) {
             // Set default values to minimum values of each column
             savedDimensions = metadata.map((v) => {
@@ -106,18 +114,10 @@
             });
             hasInitializedDimensions = true;
         }
-
-        if (mesh != null && scene != null) {
-            let oldMesh = mesh;
-            scene.remove(oldMesh);
-        }
-        mesh = new THREE.InstancedMesh(geometry, material, validPoints.length);
-        setInstances();
         if (isReady) {
-            scene.add(mesh);
+            setInstances();
         }
     });
-
     function setInstances() {
         validPoints.forEach((point, index) => {
             const transformMatrix = new THREE.Matrix4();
