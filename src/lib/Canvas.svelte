@@ -3,6 +3,7 @@
     import * as THREE from "three";
     import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
     import ToolPalette from "./ToolPalette.svelte";
+    import AnimationPalette from "./AnimationPalette.svelte";
 
     let canvas;
     const colorDict = {
@@ -98,7 +99,11 @@
     $effect(() => {
         if (isReady) {
             scene.remove(mesh);
-            mesh = new THREE.InstancedMesh(geometry, material, validPoints.length);
+            mesh = new THREE.InstancedMesh(
+                geometry,
+                material,
+                validPoints.length,
+            );
             scene.add(mesh);
         }
     });
@@ -317,16 +322,30 @@
 
 <div id="container">
     <canvas bind:this={canvas} id="c"> </canvas>
-    <ToolPalette
-        {attributes}
-        {metadata}
-        {definedFieldCount}
-        bind:fieldX
-        bind:fieldY
-        bind:fieldZ
-        bind:savedDimensions
-        bind:attributeActivity
-    ></ToolPalette>
+    <div
+        class="margin-left-10 gap-2 flex flex-col w-[35%] h-full justify-center align-center min-w-[250px]"
+    >
+        <ToolPalette
+            {attributes}
+            {metadata}
+            {definedFieldCount}
+            bind:fieldX
+            bind:fieldY
+            bind:fieldZ
+            bind:savedDimensions
+            bind:attributeActivity
+        ></ToolPalette>
+        <AnimationPalette
+            {attributes}
+            {metadata}
+            {definedFieldCount}
+            bind:fieldX
+            bind:fieldY
+            bind:fieldZ
+            bind:savedDimensions
+            bind:attributeActivity
+        ></AnimationPalette>
+    </div>
 </div>
 
 <svelte:window {onkeydown} {onkeyup} />
@@ -338,7 +357,7 @@
         height: 100%;
     }
     #c {
-        position: relative;
+        position: absolute;
         width: 100%;
         height: 100%;
         display: block;

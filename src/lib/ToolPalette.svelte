@@ -15,7 +15,7 @@
 </script>
 
 
-<div class="absolute flex flex-col items-center gap-5 w-[35%] top-[10%] left-[2.5%] h-[70%] min-w-[250px] bg-gray-800 opacity-75 rounded-lg p-3  border-2 border-gray-700">
+<div class="flex flex-col items-center gap-5 min-w-[250px] bg-gray-800 opacity-75 rounded-lg p-3  border-2 border-gray-700">
         {#each items as item(item.id)}
             <AttributeControl {item} {definedFieldCount} bind:fieldX bind:fieldY bind:fieldZ columnMetadata={metadata[item.id]} bind:value={savedDimensions[item.id]} bind:isActive={attributeActivity[item.id]}></AttributeControl>
         {/each}
