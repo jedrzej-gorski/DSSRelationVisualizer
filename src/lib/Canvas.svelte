@@ -63,8 +63,6 @@
         }
         return [];
     });
-    $inspect(validPoints);
-
     let attributes = $derived.by(() => {
         let newAttributes = [];
         if (pointData.length > 0) {
@@ -93,6 +91,7 @@
     let visualizationState = 0;
     let swap = false;
     let depth = $state(0);
+    $inspect(savedDimensions);
 
     let hasInitializedDimensions = false;
 
@@ -342,7 +341,6 @@
             bind:fieldX
             bind:fieldY
             bind:fieldZ
-            bind:savedDimensions
             bind:attributeActivity
         ></AnimationPalette>
     </div>
