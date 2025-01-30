@@ -25,6 +25,7 @@
 
     let { pointData = [], metadata = [] } = $props();
 
+    let isAnimating = $state(false);
     let fieldX = $state(null);
     let fieldY = $state(null);
     let fieldZ = $state(null);
@@ -328,6 +329,7 @@
             {attributes}
             {metadata}
             {definedFieldCount}
+            {isAnimating}
             bind:fieldX
             bind:fieldY
             bind:fieldZ
@@ -338,9 +340,11 @@
             {attributes}
             {metadata}
             {definedFieldCount}
+            bind:isAnimating
             bind:fieldX
             bind:fieldY
             bind:fieldZ
+            bind:savedDimensions
             bind:attributeActivity
         ></AnimationPalette>
     </div>

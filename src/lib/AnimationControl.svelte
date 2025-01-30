@@ -16,7 +16,7 @@
             animationStartValue = animationEndValue;
             return;
         }
-        animationStartValue = event.target.value;
+        animationStartValue = parseFloat(event.target.value);
     }
     function onchangeEnd(event) {
         if (animationEndValue == null) {
@@ -31,14 +31,14 @@
             animationEndValue = animationStartValue;
             return;
         }
-        animationEndValue = event.target.value;
+        animationEndValue = parseFloat(event.target.value);
     }
     function onchangeStep(event) {
         if (event.target.value > columnMetadata[1] || event.target.value < 0) {
             animationStep = 0.0025;
             return;
         }
-        animationStep = event.target.value;
+        animationStep = parseFloat(event.target.value);
     }
 </script>
 

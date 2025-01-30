@@ -1,7 +1,13 @@
 <script>
     import { setContext } from 'svelte';
     import RangeSlider from 'svelte-range-slider-pips';
-    let {item, columnMetadata=[], definedFieldCount = 0, value = $bindable(), fieldX = $bindable(), fieldY = $bindable(), fieldZ = $bindable(), isActive = $bindable()} = $props()
+    let {item, columnMetadata=[], definedFieldCount = 0, isAnimating, value = $bindable(), fieldX = $bindable(), fieldY = $bindable(), fieldZ = $bindable(), isActive = $bindable()} = $props()
+    let parsedValue = $derived.by(() => {
+        if (value == null) {
+            return null;
+        }
+        return value.toFixed(6);
+    })
 
     function setXAxis() {
         if (!isActive) {
@@ -45,15 +51,25 @@
             fieldZ = null;
         }
     }
-    function oninput(event) {
-        if (value == null) {
-            value = 0;
+    function onchange(event) {
+        if (event.target.value == '') {
+            event.target.value = 0;
+        }
+        if (event.target.value < columnMetadata[0]) {
+            event.target.value = columnMetadata[0];
+        }
+        else if (event.target.value > columnMetadata[1]) {
+            event.target.value = columnMetadata[1];
+        }
+        else {
+            value = parseFloat(event.target.value) || 0;
         }
     }
+    $inspect(parsedValue)
 </script>
 
 <div class="flex flex-row w-full min-h-[50px] border-gray-700 border-2 rounded-lg">
-    <button class:inactive={!isActive} class="attribute text-white m-4 w-fit h-100%" onclick={toggleActive}>{item.value}</button>
+    <button class:inactive={!isActive} disabled={isAnimating || null} class="attribute text-white m-4 w-fit h-100%" onclick={toggleActive}>{item.value}</button>
     <div class="flex flex-col w-full">
         <div class="flex flex-row w-full">
             <button class:inactive={!isActive} class:activeX={fieldX == item.id} class="bg-gray-800 rounded-lg block w-6 h-6 border-2 border-red-800" onclick={setXAxis}>
@@ -68,8 +84,8 @@
         </div>
         {#if value != null && fieldX != item.id && fieldY != item.id && fieldZ != item.id && definedFieldCount > 1 && isActive}
         <div class="flex flex-row w-full h-[24px]">
-            <RangeSlider bind:value step={0.0025} min={columnMetadata[0]} max={columnMetadata[1]} springValues={{damping: 1, stiffness: 1}} first={'label'} last={'label'}></RangeSlider>
-            <input {oninput} maxlength="6" type="number" min={columnMetadata[0]} step={0.0025} max={columnMetadata[1]} class="attribute text-white m-4 w-[10%] min-w-[65px] h-full relative top-[-15px] bg-gray-800" bind:value={value}>
+            <RangeSlider disabled={isAnimating} bind:value step={0.0025} min={columnMetadata[0]} max={columnMetadata[1]} springValues={{damping: 1, stiffness: 1}} first={'label'} last={'label'}></RangeSlider>
+            <input {onchange} disabled={isAnimating || null} maxlength="6" type="number" value={parsedValue} class="attribute text-white m-4 w-[10%] min-w-[65px] h-full relative top-[-15px] bg-gray-800">
         </div>
     {/if}
     </div>

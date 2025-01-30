@@ -6,11 +6,18 @@
         attributes = [],
         metadata = [],
         definedFieldCount = 0,
+        isAnimating = $bindable(),
         fieldX = $bindable(),
         fieldY = $bindable(),
         fieldZ = $bindable(),
+        savedDimensions = $bindable(),
         attributeActivity = $bindable(),
     } = $props();
+    let isPaused = $state(false);
+    let timeRemaining = $state(null);
+    let lastTimestamp = $state(null);
+    let animationInterval = null;
+
     let animationDimensions = $derived.by(() => {
         let dimensions = [];
         if (definedFieldCount > 1) {
@@ -37,23 +44,96 @@
     let animationItems = $state([]);
 
     $effect(() => {
-        animationItems = animationDimensions.map((dimension) => ({ 
-            id: counter++, 
-            value: dimension 
+        animationItems = animationDimensions.map((dimension) => ({
+            id: counter++,
+            value: dimension,
         }));
     });
 
     let counter = 0;
     let animationPeriod = $state(10);
 
+    function step() {
+        let hasChanged = false;
+        animationItems.forEach((item) => {
+            if (item.value.isActive) {
+                if (
+                    savedDimensions[item.value.id] + item.value.animationStep <=
+                    item.value.animationEndValue
+                ) {
+                    savedDimensions[item.value.id] += parseFloat(
+                        item.value.animationStep,
+                    );
+                    hasChanged = true;
+                } else {
+                    savedDimensions[item.value.id] = parseFloat(
+                        item.value.animationEndValue,
+                    );
+                }
+            }
+        });
+        if (!hasChanged) {
+            stop();
+        }
+    }
+
     function play() {
-        console.log("play");
+        isAnimating = true;
+
+        if (timeRemaining === null) {
+            timeRemaining = animationPeriod;
+            animationItems.forEach((item) => {
+                if (item.value.isActive) {
+                    savedDimensions[item.value.id] =
+                        item.value.animationStartValue;
+                }
+            });
+        }
+        if (!animationInterval) {
+            lastTimestamp = Date.now();
+            animationInterval = setInterval(() => {
+                const now = Date.now();
+                const delta = now - lastTimestamp;
+                lastTimestamp = now;
+
+                timeRemaining -= delta;
+
+                if (timeRemaining <= 0) {
+                    timeRemaining = animationPeriod + timeRemaining;
+                    step();
+                }
+            }, 5);
+        }
     }
     function pause() {
-        console.log("pause");
+        if (animationInterval) {
+            clearInterval(animationInterval);
+            animationInterval = null;
+            lastTimestamp = null;
+        }
     }
     function stop() {
-        console.log("stop");
+        pause();
+        isAnimating = false;
+        timeRemaining = null;
+    }
+    function previous() {
+        animationItems.forEach((item) => {
+            if (item.value.isActive) {
+                if (
+                    savedDimensions[item.value.id] - item.value.animationStep >=
+                    item.value.animationStartValue
+                ) {
+                    savedDimensions[item.value.id] -= parseFloat(
+                        item.value.animationStep,
+                    );
+                } else {
+                    savedDimensions[item.value.id] = parseFloat(
+                        item.value.animationStartValue,
+                    );
+                }
+            }
+        });
     }
 
     $inspect(animationDimensions);
@@ -75,17 +155,20 @@
         />
         <p class="text-white w-fit h-100%">ms</p>
     </div>
-    {#each animationItems as item(item.id)}
-        <AnimationControl 
+    {#each animationItems as item (item.id)}
+        <AnimationControl
             attributeName={item.value.name}
-            bind:animationStartValue={item.value.animationStartValue} 
-            bind:animationEndValue={item.value.animationEndValue} 
-            bind:animationStep={item.value.animationStep} 
-            bind:isActive={item.value.isActive} 
+            bind:animationStartValue={item.value.animationStartValue}
+            bind:animationEndValue={item.value.animationEndValue}
+            bind:animationStep={item.value.animationStep}
+            bind:isActive={item.value.isActive}
             columnMetadata={metadata[item.value.id]}
         />
     {/each}
     <div class="flex flex-row gap-2">
+        <button class="bg-gray-700 text-white rounded-lg p-2" onclick={previous}
+            >Previous</button
+        >
         <button class="bg-gray-700 text-white rounded-lg p-2" onclick={play}
             >Play</button
         >
@@ -94,6 +177,9 @@
         >
         <button class="bg-gray-700 text-white rounded-lg p-2" onclick={stop}
             >Stop</button
+        >
+        <button class="bg-gray-700 text-white rounded-lg p-2" onclick={step}
+            >Next</button
         >
     </div>
 </div>
